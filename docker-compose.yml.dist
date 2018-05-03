@@ -1,0 +1,162 @@
+version: '3'
+
+services:
+    api-read:
+        container_name: cw_api_read
+        image: customerway/api_read:v0.99
+        volumes:
+            - ./api-read:/srv
+        depends_on:
+            - elasticsearch
+            - redis
+        environment:
+            COMPOSER_GITHUB_OAUTH_TOKEN: "${YOUR_GITHUB_TOKEN}"
+
+    api-write:
+        container_name: cw_api_write
+        image: customerway/api_write:v0.99
+        volumes:
+            - ./api-write:/srv
+        depends_on:
+            - db
+            - redis
+        environment:
+            COMPOSER_GITHUB_OAUTH_TOKEN: "${YOUR_GITHUB_TOKEN}"
+
+    front:
+        container_name: cw_front
+        image: customerway/front:v0.99
+        volumes:
+            - ./front:/srv
+        depends_on:
+            - api-read
+            - api-write
+        environment:
+            COMPOSER_GITHUB_OAUTH_TOKEN: "${YOUR_GITHUB_TOKEN}"
+
+    nginx:
+        container_name: cw_nginx
+        image: customerway/nginx:v0.99
+        ports:
+            - "80:80"
+            - "443:443"
+        networks:
+            default:
+                aliases:
+                    - 'dev.read.customerway.fr'
+                    - 'dev.write.customerway.fr'
+                    - 'dev.customerway.fr'
+        depends_on:
+            - api-read
+            - api-write
+            - front
+
+    db:
+        container_name: cw_db
+        image: customerway/db:v0.99
+        ports:
+            - "5432:5432"
+        volumes:
+            - ./api/docker/db/scripts:/docker-entrypoint-initdb.d/
+        environment:
+            POSTGRES_DB: cwdb
+
+    redis:
+        container_name: cw_redis
+        image: redis:3.0
+
+    rabbitmq:
+        container_name: cw_rabbitmq
+        image: rabbitmq:3.6.6-management
+        ports:
+            - "15672:15672"
+            - "5672:5672"
+
+    node:
+        container_name: cw_node
+        image: customerway/node:v0.99
+        volumes:
+            - ./front:/srv/front
+            - $SSH_AUTH_SOCK:/ssh-agent # Forward local machine SSH key to docker
+        environment:
+            SSH_AUTH_SOCK: /ssh-agent
+            COMPOSER_GITHUB_OAUTH_TOKEN: "${YOUR_GITHUB_TOKEN}"
+            GIT_SSH_KEY: "${GIT_SSH_KEY}"
+
+    notification:
+        container_name: cw_notification
+        image: customerway/notification:v0.99
+        volumes:
+            - ./notification:/srv
+        depends_on:
+            - "rabbitmq"
+            - "redis"
+        environment:
+            COMPOSER_GITHUB_OAUTH_TOKEN: "${YOUR_GITHUB_TOKEN}"
+
+  #  es-sync:
+  #      container_name: cw_es_sync
+  #      image: customerway/es-sync:v0.99
+
+    elasticsearch:
+        container_name: cw_elastic
+        image: customerway/elastic:6.2
+        environment:
+            - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+        ports:
+            - "9200:9200"
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:9200"]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+    kibana:
+        container_name: cw_kibana
+        image: customerway/kibana
+        environment:
+            - ELASTICSEARCH_USERNAME=kibana
+            - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+        depends_on:
+            - elasticsearch
+        ports:
+            - "5601:5601"
+
+    logstash:
+        container_name: cw_logstash
+        image: customerway/logstash
+        environment:
+            - 'xpack.monitoring.elasticsearch.password=${ELASTIC_PASSWORD}'
+        # Provide a simple pipeline configuration for Logstash with a bind-mounted file.
+        volumes:
+            - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+        depends_on:
+            - setup_logstash
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8080"]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+    # Run a short-lived container to set up Logstash.
+    setup_logstash:
+        image: centos:7
+        container_name: setup_logstash
+        volumes: ['./config/setup-logstash.sh:/usr/local/bin/setup-logstash.sh:ro']
+        environment: ['ELASTIC_PASSWORD=${ELASTIC_PASSWORD}']
+        depends_on: ['elasticsearch']
+
+    setup_kibana:
+        image: centos:7
+        container_name: setup_kibana
+        volumes: ['./config/setup-kibana.sh:/usr/local/bin/setup-kibana.sh:ro']
+        environment: ['ELASTIC_PASSWORD=${ELASTIC_PASSWORD}']
+        depends_on: ['elasticsearch']
+
+    mongo:
+        container_name: mr_mongo
+        image: mongo:3.4
+        ports:
+           - "27017:27017"
+
+
