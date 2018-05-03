@@ -1,0 +1,33 @@
+# Build data
+############
+/build/
+/vendor/
+
+# DB dump
+#########
+latest.dump
+
+# Docker
+########
+/docker-compose.yml
+/docker-compose.override.yml
+
+# Temporary and cache files
+###########################
+*.swp
+*.php~
+.zcache
+.idea
+.env
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+node_modules
+.env.backup
