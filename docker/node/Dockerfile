@@ -15,6 +15,7 @@ RUN apt-get update \
         g++ \
     && apt-get autoremove -y \
     && apt-get clean \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN yarn global add eslint eslint-plugin-html
