@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+    # selenium:
+    #     container_name: mr_selenium
+    #     image: selenium/standalone-chrome:3.4
+    #     ports:
+    #         - "4444:4444"
