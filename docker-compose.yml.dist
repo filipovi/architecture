@@ -100,7 +100,7 @@ services:
 
     elasticsearch:
         container_name: cw_elastic
-        image: customerway/elastic:6.2
+        image: customerway/elastic:v0.99
         environment:
             - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
         ports:
@@ -113,7 +113,7 @@ services:
 
     kibana:
         container_name: cw_kibana
-        image: customerway/kibana
+        image: customerway/kibana:v0.99
         environment:
             - ELASTICSEARCH_USERNAME=kibana
             - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
@@ -124,7 +124,7 @@ services:
 
     logstash:
         container_name: cw_logstash
-        image: customerway/logstash
+        image: customerway/logstash:v0.99
         environment:
             - 'xpack.monitoring.elasticsearch.password=${ELASTIC_PASSWORD}'
         # Provide a simple pipeline configuration for Logstash with a bind-mounted file.
